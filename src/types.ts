@@ -14,16 +14,22 @@ export interface ReportMetadata {
   tags: string[];
 }
 
+export type FileExtension = "xlsx" | "xls" | "csv" | "tsv";
+
 export interface OutputDestination {
   service: "box" | "s3";
   location: string;
   filename: string;
+  file_extension: FileExtension;
   ssm_key?: string | null;
 }
+
+export type NotificationType = "all" | "completed" | "error";
 
 export interface EmailNotification {
   recipients: string[];
   message: string;
+  notify_on: NotificationType;
 }
 
 export interface ConfiguredReport {

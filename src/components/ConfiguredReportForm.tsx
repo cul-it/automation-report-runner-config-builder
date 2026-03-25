@@ -16,6 +16,8 @@ interface Props {
   onChange: (report: ConfiguredReport) => void;
   onRemove: () => void;
   errors: ValidationErrors | null;
+  definitionId: string;
+  metadataName: string;
 }
 
 export function ConfiguredReportForm({
@@ -25,6 +27,8 @@ export function ConfiguredReportForm({
   onChange,
   onRemove,
   errors,
+  definitionId,
+  metadataName,
 }: Props) {
   const update = <K extends keyof ConfiguredReport>(
     field: K,
@@ -107,6 +111,9 @@ export function ConfiguredReportForm({
           outputs={report.outputs}
           onChange={(o) => update("outputs", o)}
           errors={errors}
+          definitionId={definitionId}
+          reportName={report.name || ""}
+          metadataName={metadataName}
         />
       </div>
 
@@ -115,6 +122,7 @@ export function ConfiguredReportForm({
         <EmailForm
           notifications={report.email_notifications}
           onChange={(n) => update("email_notifications", n)}
+          errors={errors}
         />
       </div>
     </div>

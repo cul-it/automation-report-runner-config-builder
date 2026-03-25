@@ -12,7 +12,8 @@ import { ConfiguredReportForm } from "@/components/ConfiguredReportForm";
 import { JsonPreview, buildJson } from "@/components/JsonPreview";
 import { localToUtc } from "@/lib/time";
 import { validateDefinition, errorsFor, type ValidationErrors } from "@/lib/validation";
-import { FilePlus, FolderOpen, Pencil, Code, ShieldCheck, Download, Plus } from "lucide-react";
+import { MermaidPreview } from "@/components/MermaidPreview";
+import { FilePlus, FolderOpen, Pencil, Code, ShieldCheck, Download, Plus, GitBranch } from "lucide-react";
 import type { ReportDefinition, ConfiguredReport } from "@/types";
 
 function downloadJson(definition: ReportDefinition) {
@@ -33,7 +34,7 @@ function emptyReport(): ConfiguredReport {
     sql_file: "",
     schedule: { type: "daily", time: localToUtc("09:00") },
     params: null,
-    outputs: [{ service: "box", location: "", filename: "" }],
+    outputs: [{ service: "box", location: "", filename: "", file_extension: "xlsx" }],
     email_notifications: null,
   };
 }
@@ -89,9 +90,16 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
               service: o.service ?? "box",
               location: o.location ?? "",
               filename: o.filename ?? "",
+              file_extension: o.file_extension ?? "xlsx",
               ssm_key: o.ssm_key ?? null,
             })),
-            email_notifications: r.email_notifications ?? null,
+            email_notifications: r.email_notifications
+              ? r.email_notifications.map((n: any) => ({
+                  recipients: n.recipients ?? [],
+                  message: n.message ?? "",
+                  notify_on: n.notify_on ?? "all",
+                }))
+              : null,
           })),
         };
         if (def.reports.length === 0) {
@@ -140,31 +148,38 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
 
 function Editor({ definition, setDefinition }: { definition: ReportDefinition; setDefinition: (d: ReportDefinition) => void }) {
   const [errors, setErrors] = useState<ValidationErrors | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const hasErrors = errors !== null && Object.keys(errors).length > 0;
-  const isValid = errors !== null && Object.keys(errors).length === 0;
+  const isValid = errors !== null && Object.keys(errors).length === 0 && !dirty;
 
   const runValidation = () => {
     const result = validateDefinition(definition);
     setErrors(result.errors);
+    setDirty(false);
+  };
+
+  const markDirtyAndSet = (next: ReportDefinition) => {
+    if (errors !== null) setDirty(true);
+    setDefinition(next);
   };
 
   const updateReport = (index: number, report: ConfiguredReport) => {
     const updated = definition.reports.map((r, i) =>
       i === index ? report : r
     );
-    setDefinition({ ...definition, reports: updated });
+    markDirtyAndSet({ ...definition, reports: updated });
   };
 
   const addReport = () => {
-    setDefinition({
+    markDirtyAndSet({
       ...definition,
       reports: [...definition.reports, emptyReport()],
     });
   };
 
   const removeReport = (index: number) => {
-    setDefinition({
+    markDirtyAndSet({
       ...definition,
       reports: definition.reports.filter((_, i) => i !== index),
     });
@@ -188,23 +203,30 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
           <div className="flex items-center justify-between">
             <TabsList className="h-12 p-1">
               <TabsTrigger value="editor" className="px-6 py-2 text-base"><Pencil className="size-4" /> Editor</TabsTrigger>
+              <TabsTrigger value="flow" className="px-6 py-2 text-base"><GitBranch className="size-4" /> Flow</TabsTrigger>
               <TabsTrigger value="json" className="px-6 py-2 text-base"><Code className="size-4" /> JSON</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-3">
-              {errors !== null && (
-                <Badge
-                  variant={isValid ? "default" : "destructive"}
-                  className="px-3 py-1 text-sm h-auto"
-                >
-                  {isValid
-                    ? "Valid"
-                    : `${errorList.length} issue${errorList.length === 1 ? "" : "s"}`}
+              {isValid && (
+                <Badge className="px-3 py-1 text-sm h-auto bg-green-600 text-white">
+                  <ShieldCheck className="size-4" />
+                  Valid
                 </Badge>
               )}
-              <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50" onClick={runValidation}>
-                <ShieldCheck className="size-4" />
-                {hasErrors ? "Re-validate" : "Validate"}
-              </Button>
+              {hasErrors && (
+                <Badge
+                  variant="destructive"
+                  className="px-3 py-1 text-sm h-auto"
+                >
+                  {`${errorList.length} issue${errorList.length === 1 ? "" : "s"}`}
+                </Badge>
+              )}
+              {!isValid && (
+                <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50" onClick={runValidation}>
+                  <ShieldCheck className="size-4" />
+                  {hasErrors || dirty ? "Re-validate" : "Validate"}
+                </Button>
+              )}
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
                 onClick={() => downloadJson(definition)}
@@ -280,7 +302,7 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
                       id="report-id"
                       value={definition.id}
                       onChange={(e) =>
-                        setDefinition({ ...definition, id: e.target.value })
+                        markDirtyAndSet({ ...definition, id: e.target.value })
                       }
                       placeholder="MCR222"
                       className={errors?.["id"] ? "border-destructive" : ""}
@@ -291,7 +313,7 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
                     <Switch
                       checked={definition.enabled}
                       onCheckedChange={(checked) =>
-                        setDefinition({ ...definition, enabled: checked })
+                        markDirtyAndSet({ ...definition, enabled: checked })
                       }
                     />
                     <Label>
@@ -304,13 +326,13 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
 
             <Card>
               <CardHeader>
-                <CardTitle>Metadata</CardTitle>
+                <CardTitle>Optional Metadata</CardTitle>
               </CardHeader>
               <CardContent>
                 <MetadataForm
                   metadata={definition.metadata}
                   onChange={(metadata) =>
-                    setDefinition({ ...definition, metadata })
+                    markDirtyAndSet({ ...definition, metadata })
                   }
                 />
               </CardContent>
@@ -336,9 +358,15 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
                   onChange={(r) => updateReport(index, r)}
                   onRemove={() => removeReport(index)}
                   errors={errors ? errorsFor(errors, `reports.${index}`) : null}
+                  definitionId={definition.id}
+                  metadataName={definition.metadata.name}
                 />
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="flow" className="mt-6">
+            <MermaidPreview definition={definition} />
           </TabsContent>
 
           <TabsContent value="json" className="mt-6">

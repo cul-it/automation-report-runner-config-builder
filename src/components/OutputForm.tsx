@@ -13,25 +13,31 @@ import { RequiredLabel, FieldError } from "@/App";
 import type { OutputDestination } from "@/types";
 import type { ValidationErrors } from "@/lib/validation";
 
-function previewFilename(template: string): string {
+function previewFilename(template: string, definitionId: string, reportName: string, metadataName: string): string {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
   const currentDatetime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}_${pad(now.getMinutes())}`;
   return template
+    .replace(/\{id\}/g, definitionId || "unnamed")
     .replace(/\{current_datetime\}/g, currentDatetime)
-    .replace(/\{workflow_id\}/g, "a1b2c3d4");
+    .replace(/\{workflow_id\}/g, "a1b2c3d4")
+    .replace(/\{name\}/g, reportName || "unnamed")
+    .replace(/\{metadata_name\}/g, metadataName || "unnamed");
 }
 
 interface Props {
   outputs: OutputDestination[];
   onChange: (outputs: OutputDestination[]) => void;
   errors: ValidationErrors | null;
+  definitionId: string;
+  reportName: string;
+  metadataName: string;
 }
 
-const TEMPLATE_VARS = ["current_datetime", "workflow_id"];
+const TEMPLATE_VARS = ["id", "current_datetime", "metadata_name", "name", "workflow_id"];
 
 function emptyOutput(): OutputDestination {
-  return { service: "box", location: "", filename: "" };
+  return { service: "box", location: "", filename: "", file_extension: "xlsx" };
 }
 
 function FilenameInput({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
@@ -91,7 +97,7 @@ function FilenameInput({ value, onChange, error }: { value: string; onChange: (v
   );
 }
 
-export function OutputForm({ outputs, onChange, errors }: Props) {
+export function OutputForm({ outputs, onChange, errors, definitionId, reportName, metadataName }: Props) {
   const update = (index: number, field: keyof OutputDestination, value: string | null) => {
     if (value === null) return;
     const updated = outputs.map((o, i) =>
@@ -126,7 +132,7 @@ export function OutputForm({ outputs, onChange, errors }: Props) {
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3">
               <div className="space-y-2">
                 <Label>Service</Label>
                 <Select
@@ -159,10 +165,27 @@ export function OutputForm({ outputs, onChange, errors }: Props) {
                 onChange={(v) => update(index, "filename", v)}
                 error={filenameErr}
               />
+              <div className="space-y-2">
+                <Label>Extension</Label>
+                <Select
+                  value={output.file_extension}
+                  onValueChange={(v) => update(index, "file_extension", v)}
+                >
+                  <SelectTrigger>
+                    <span>.{output.file_extension}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="xlsx">.xlsx</SelectItem>
+                    <SelectItem value="xls">.xls</SelectItem>
+                    <SelectItem value="csv">.csv</SelectItem>
+                    <SelectItem value="tsv">.tsv</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {output.filename && (
               <p className="text-sm text-black break-all">
-                Preview: <span className="font-mono">{previewFilename(output.filename)}</span>
+                Preview: <span className="font-mono">{previewFilename(output.filename, definitionId, reportName, metadataName)}.{output.file_extension}</span>
               </p>
             )}
             <details className="text-sm text-black">
@@ -170,7 +193,10 @@ export function OutputForm({ outputs, onChange, errors }: Props) {
                 Filename variables
               </summary>
               <ul className="mt-2 ml-4 list-disc space-y-1">
+                <li><code className="font-mono font-semibold">{"{id}"}</code> — Report definition ID</li>
                 <li><code className="font-mono font-semibold">{"{current_datetime}"}</code> — Timestamp when the report runs, formatted as <code className="font-mono">YYYY-MM-DD_HH_mm</code> (e.g. <code className="font-mono">2026-03-24_17_25</code>)</li>
+                <li><code className="font-mono font-semibold">{"{metadata_name}"}</code> — Name from the report definition metadata</li>
+                <li><code className="font-mono font-semibold">{"{name}"}</code> — Name of this configured report</li>
                 <li><code className="font-mono font-semibold">{"{workflow_id}"}</code> — Unique identifier assigned to each workflow execution, useful for tracing and deduplication</li>
               </ul>
             </details>

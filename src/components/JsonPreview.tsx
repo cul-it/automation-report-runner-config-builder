@@ -30,6 +30,7 @@ export function buildJson(definition: ReportDefinition): object {
             service: o.service,
             location: o.location,
             filename: o.filename,
+            file_extension: o.file_extension,
           };
           if (o.ssm_key) out.ssm_key = o.ssm_key;
           return out;
