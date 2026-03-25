@@ -366,7 +366,13 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
           </TabsContent>
 
           <TabsContent value="flow" className="mt-6">
-            <MermaidPreview definition={definition} />
+            {isValid ? (
+              <MermaidPreview definition={definition} />
+            ) : (
+              <div className="rounded-md border p-8 text-center text-muted-foreground">
+                Validate your configuration to view the flow chart.
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="json" className="mt-6">
