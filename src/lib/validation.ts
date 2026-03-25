@@ -46,6 +46,21 @@ export function validateDefinition(def: ReportDefinition): ValidationResult {
       errors[`${p}.outputs`] = "At least one output is required.";
     }
 
+    if (r.email_notifications) {
+      r.email_notifications.forEach((n, j) => {
+        const np = `${p}.email_notifications.${j}`;
+        if (n.recipients.length === 0) {
+          errors[`${np}.recipients`] = "At least one recipient is required.";
+        }
+        if (!n.message.trim()) {
+          errors[`${np}.message`] = "Message is required.";
+        }
+        if (!n.notify_on) {
+          errors[`${np}.notify_on`] = "Notify on is required.";
+        }
+      });
+    }
+
     r.outputs.forEach((o, j) => {
       const op = `${p}.outputs.${j}`;
       if (!o.location.trim()) {
