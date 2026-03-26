@@ -28,6 +28,7 @@ export type NotificationType = "all" | "completed" | "error";
 
 export interface EmailNotification {
   recipients: string[];
+  subject: string;
   message: string;
   notify_on: NotificationType;
 }

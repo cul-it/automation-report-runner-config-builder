@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,17 +27,13 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
 
   const list = notifications || [];
 
-  const add = () => {
-    onChange([...list, { recipients: [], message: "", notify_on: "all" }]);
-  };
-
   const remove = (index: number) => {
     const updated = list.filter((_, i) => i !== index);
     onChange(updated.length > 0 ? updated : null);
   };
 
-  const updateMessage = (index: number, message: string) => {
-    onChange(list.map((n, i) => (i === index ? { ...n, message } : n)));
+  const updateField = (index: number, field: "subject" | "message", value: string) => {
+    onChange(list.map((n, i) => (i === index ? { ...n, [field]: value } : n)));
   };
 
   const addRecipient = (index: number) => {
@@ -63,6 +60,7 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
     <div className="space-y-4">
       {list.map((notif, index) => {
         const recipientsErr = errors?.[`email_notifications.${index}.recipients`];
+        const subjectErr = errors?.[`email_notifications.${index}.subject`];
         const messageErr = errors?.[`email_notifications.${index}.message`];
         const notifyOnErr = errors?.[`email_notifications.${index}.notify_on`];
 
@@ -78,7 +76,7 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
                 onClick={() => remove(index)}
                 className="text-destructive hover:text-destructive"
               >
-                Remove
+                <Trash2 className="size-4" />
               </Button>
             </div>
             <div className="space-y-2">
@@ -142,10 +140,20 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
               )}
             </div>
             <div className="space-y-2">
+              <RequiredLabel>Subject</RequiredLabel>
+              <Input
+                value={notif.subject}
+                onChange={(e) => updateField(index, "subject", e.target.value)}
+                placeholder="Report Ready: {id}"
+                className={subjectErr ? "border-destructive" : ""}
+              />
+              <FieldError error={subjectErr} />
+            </div>
+            <div className="space-y-2">
               <RequiredLabel>Message</RequiredLabel>
               <Textarea
                 value={notif.message}
-                onChange={(e) => updateMessage(index, e.target.value)}
+                onChange={(e) => updateField(index, "message", e.target.value)}
                 placeholder="Your report is ready."
                 rows={2}
                 className={messageErr ? "border-destructive" : ""}
@@ -155,9 +163,20 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
           </div>
         );
       })}
-      <Button variant="outline" size="sm" onClick={add}>
-        + Add Notification
-      </Button>
+      <details className="text-sm text-black">
+        <summary className="cursor-pointer font-medium text-base">
+          Template variables
+        </summary>
+        <p className="mt-1 mb-2">These variables work in both the subject and the message.</p>
+        <ul className="ml-4 list-disc space-y-1">
+          <li><code className="font-mono font-semibold">{"{id}"}</code> — Report definition ID</li>
+          <li><code className="font-mono font-semibold">{"{current_datetime}"}</code> — Timestamp when the report runs</li>
+          <li><code className="font-mono font-semibold">{"{metadata_name}"}</code> — Name from the report definition metadata</li>
+          <li><code className="font-mono font-semibold">{"{name}"}</code> — Name of the configured report</li>
+          <li><code className="font-mono font-semibold">{"{workflow_id}"}</code> — Unique workflow execution identifier</li>
+          <li><code className="font-mono font-semibold">{"{error_msg}"}</code> — Error message if the report failed</li>
+        </ul>
+      </details>
     </div>
   );
 }

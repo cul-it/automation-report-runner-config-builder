@@ -3,6 +3,18 @@ import mermaid from "mermaid";
 import type { ReportDefinition } from "@/types";
 import { utcToLocal, getTimezoneAbbr } from "@/lib/time";
 
+function previewFilename(template: string, defId: string, reportName: string, metadataName: string): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const dt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}_${pad(now.getMinutes())}`;
+  return template
+    .replace(/\{id\}/g, defId || "unnamed")
+    .replace(/\{current_datetime\}/g, dt)
+    .replace(/\{workflow_id\}/g, "a1b2c3d4")
+    .replace(/\{name\}/g, reportName || "unnamed")
+    .replace(/\{metadata_name\}/g, metadataName || "unnamed");
+}
+
 mermaid.initialize({
   startOnLoad: false,
   theme: "default",
@@ -12,6 +24,10 @@ mermaid.initialize({
 
 function esc(s: string): string {
   return s.replace(/"/g, "#quot;").replace(/[[\]{}()<>]/g, " ").replace(/\n/g, " ");
+}
+
+function escKeepBraces(s: string): string {
+  return s.replace(/"/g, "#quot;").replace(/[[\]()<>]/g, " ").replace(/\n/g, " ");
 }
 
 function ordinal(n: number): string {
@@ -88,8 +104,10 @@ function buildMermaid(def: ReportDefinition): string {
     lines.push(`  style ${schedId} fill:${dim ? "#9ca3af" : "#f59e0b"},color:#fff,stroke:${dim ? "#6b7280" : "#d97706"}`);
 
     // Database query
-    const paramKeys = r.params ? Object.keys(r.params) : [];
-    const paramsLabel = paramKeys.length > 0 ? `<br/><i>Params:</i> ${esc(paramKeys.join(", "))}` : "";
+    const paramEntries = r.params ? Object.entries(r.params) : [];
+    const paramsLabel = paramEntries.length > 0
+      ? `<br/><i>Params:</i> ${paramEntries.map(([k, v]) => `${esc(k)}=${esc(v)}`).join(", ")}`
+      : "";
     lines.push(`  ${schedId} -->|queries| ${sqlId}[("<b>${db}</b><br/><i>File:</i> ${sqlFile}${paramsLabel}")]`);
     lines.push(`  style ${sqlId} fill:${dim ? "#9ca3af" : "#7c3aed"},color:#fff,stroke:${dim ? "#6b7280" : "#6d28d9"}`);
 
@@ -100,9 +118,10 @@ function buildMermaid(def: ReportDefinition): string {
       outputIds.push(outId);
       const svc = o.service === "box" ? "Box" : "S3";
       const loc = esc(o.location || "no destination");
-      const fname = esc(o.filename || "no filename");
+      const fname = escKeepBraces(o.filename || "no filename");
       const ext = o.file_extension || "xlsx";
-      lines.push(`  ${sqlId} -->|saves to| ${outId}[["<b>${svc}</b><br/><i>Location:</i> ${loc}<br/><i>Filename:</i> ${fname}.${ext}"]]`);
+      const preview = esc(previewFilename(o.filename || "no filename", def.id, name, def.metadata.name));
+      lines.push(`  ${sqlId} -->|saves to| ${outId}[["<b>${svc}</b><br/><i>Location:</i> ${loc}<br/><i>Template:</i> ${fname}.${ext}<br/><i>Preview:</i> ${preview}.${ext}"]]`);
       lines.push(`  style ${outId} fill:${dim ? "#9ca3af" : "#10b981"},color:#fff,stroke:${dim ? "#6b7280" : "#059669"}`);
     });
 

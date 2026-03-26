@@ -52,6 +52,9 @@ export function validateDefinition(def: ReportDefinition): ValidationResult {
         if (n.recipients.length === 0) {
           errors[`${np}.recipients`] = "At least one recipient is required.";
         }
+        if (!n.subject.trim()) {
+          errors[`${np}.subject`] = "Subject is required.";
+        }
         if (!n.message.trim()) {
           errors[`${np}.message`] = "Message is required.";
         }

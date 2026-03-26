@@ -8,6 +8,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { RequiredLabel, FieldError } from "@/App";
 import type { OutputDestination } from "@/types";
 import type { ValidationErrors } from "@/lib/validation";
@@ -34,10 +35,6 @@ interface Props {
 }
 
 const TEMPLATE_VARS = ["id", "current_datetime", "metadata_name", "name", "workflow_id"];
-
-function emptyOutput(): OutputDestination {
-  return { service: "box", location: "", filename: "", file_extension: "xlsx" };
-}
 
 function FilenameInput({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -75,7 +72,7 @@ function FilenameInput({ value, onChange, error }: { value: string; onChange: (v
         value={value}
         onChange={handleChange}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-        placeholder="report_{current_datetime}.xlsx"
+        placeholder="report_{current_datetime}"
         className={error ? "border-destructive" : ""}
       />
       <FieldError error={error} />
@@ -105,8 +102,6 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
     onChange(updated);
   };
 
-  const add = () => onChange([...outputs, emptyOutput()]);
-
   const remove = (index: number) =>
     onChange(outputs.filter((_, i) => i !== index));
 
@@ -119,7 +114,11 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
         return (
           <div key={index} className="border rounded-lg p-4 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Output {index + 1}</span>
+              <span className="text-sm font-bold font-mono">
+                {output.filename
+                  ? `${previewFilename(output.filename, definitionId, reportName, metadataName)}.${output.file_extension}`
+                  : `Output ${index + 1}`}
+              </span>
               {outputs.length > 1 && (
                 <Button
                   variant="ghost"
@@ -127,7 +126,7 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
                   onClick={() => remove(index)}
                   className="text-destructive hover:text-destructive"
                 >
-                  Remove
+                  <Trash2 className="size-4" />
                 </Button>
               )}
             </div>
@@ -182,29 +181,35 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
                 </Select>
               </div>
             </div>
-            {output.filename && (
-              <p className="text-sm text-black break-all">
-                Preview: <span className="font-mono">{previewFilename(output.filename, definitionId, reportName, metadataName)}.{output.file_extension}</span>
-              </p>
+            {output.service === "s3" && (
+              <div className="space-y-2">
+                <Label>SSM Key <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={output.ssm_key || ""}
+                  onChange={(e) => update(index, "ssm_key", e.target.value || null)}
+                  placeholder="/path/to/ssm/secret"
+                  className="font-mono"
+                />
+                <p className="text-sm text-black">
+                  Only required if the S3 bucket is not accessible by the default automation IAM user.
+                </p>
+              </div>
             )}
-            <details className="text-sm text-black">
-              <summary className="cursor-pointer font-medium text-base">
-                Filename variables
-              </summary>
-              <ul className="mt-2 ml-4 list-disc space-y-1">
-                <li><code className="font-mono font-semibold">{"{id}"}</code> — Report definition ID</li>
-                <li><code className="font-mono font-semibold">{"{current_datetime}"}</code> — Timestamp when the report runs, formatted as <code className="font-mono">YYYY-MM-DD_HH_mm</code> (e.g. <code className="font-mono">2026-03-24_17_25</code>)</li>
-                <li><code className="font-mono font-semibold">{"{metadata_name}"}</code> — Name from the report definition metadata</li>
-                <li><code className="font-mono font-semibold">{"{name}"}</code> — Name of this configured report</li>
-                <li><code className="font-mono font-semibold">{"{workflow_id}"}</code> — Unique identifier assigned to each workflow execution, useful for tracing and deduplication</li>
-              </ul>
-            </details>
           </div>
         );
       })}
-      <Button variant="outline" size="sm" onClick={add}>
-        + Add Output
-      </Button>
+      <details className="text-sm text-black">
+        <summary className="cursor-pointer font-medium text-base">
+          Filename variables
+        </summary>
+        <ul className="mt-2 ml-4 list-disc space-y-1">
+          <li><code className="font-mono font-semibold">{"{id}"}</code> — Report definition ID</li>
+          <li><code className="font-mono font-semibold">{"{current_datetime}"}</code> — Timestamp when the report runs, formatted as <code className="font-mono">YYYY-MM-DD_HH_mm</code> (e.g. <code className="font-mono">2026-03-24_17_25</code>)</li>
+          <li><code className="font-mono font-semibold">{"{metadata_name}"}</code> — Name from the report definition metadata</li>
+          <li><code className="font-mono font-semibold">{"{name}"}</code> — Name of this configured report</li>
+          <li><code className="font-mono font-semibold">{"{workflow_id}"}</code> — Unique identifier assigned to each workflow execution, useful for tracing and deduplication</li>
+        </ul>
+      </details>
     </div>
   );
 }

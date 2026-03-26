@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,7 +13,8 @@ import { JsonPreview, buildJson } from "@/components/JsonPreview";
 import { localToUtc } from "@/lib/time";
 import { validateDefinition, errorsFor, type ValidationErrors } from "@/lib/validation";
 import { MermaidPreview } from "@/components/MermaidPreview";
-import { FilePlus, FolderOpen, Pencil, Code, ShieldCheck, Download, Plus, GitBranch } from "lucide-react";
+import { useHistory } from "@/lib/useHistory";
+import { FilePlus, FolderOpen, Pencil, Code, ShieldCheck, Download, Plus, GitBranch, Undo2, Redo2 } from "lucide-react";
 import type { ReportDefinition, ConfiguredReport } from "@/types";
 
 function downloadJson(definition: ReportDefinition) {
@@ -22,7 +23,7 @@ function downloadJson(definition: ReportDefinition) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = definition.id ? `${definition.id}.json` : "report.json";
+  a.download = definition.id ? `${definition.id}_runner.json` : "runner.json";
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -62,6 +63,7 @@ export function RequiredLabel({ children, htmlFor }: { children: React.ReactNode
 
 function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: ReportDefinition) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [parseError, setParseError] = useState(false);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +98,7 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
             email_notifications: r.email_notifications
               ? r.email_notifications.map((n: any) => ({
                   recipients: n.recipients ?? [],
+                  subject: n.subject ?? "",
                   message: n.message ?? "",
                   notify_on: n.notify_on ?? "all",
                 }))
@@ -107,7 +110,7 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
         }
         onLoad(def);
       } catch {
-        alert("Failed to parse JSON file. Please check the file format.");
+        setParseError(true);
       }
     };
     reader.readAsText(file);
@@ -142,13 +145,43 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
           />
         </div>
       </div>
+      {parseError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setParseError(false)}>
+          <div className="bg-background rounded-lg border shadow-lg p-6 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-destructive">Invalid JSON File</h3>
+            <p className="text-sm">
+              The selected file could not be parsed as valid JSON.
+            </p>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setParseError(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function Editor({ definition, setDefinition }: { definition: ReportDefinition; setDefinition: (d: ReportDefinition) => void }) {
-  const [errors, setErrors] = useState<ValidationErrors | null>(null);
-  const [dirty, setDirty] = useState(false);
+function Editor({ definition, setDefinition, onDownload, autoValidate, canUndo, canRedo, undo, redo, dirty, setDirty }: {
+  definition: ReportDefinition;
+  setDefinition: (d: ReportDefinition) => void;
+  onDownload: (d: ReportDefinition) => void;
+  autoValidate?: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+  dirty: boolean;
+  setDirty: (d: boolean) => void;
+}) {
+  const [errors, setErrors] = useState<ValidationErrors | null>(() => {
+    if (autoValidate) {
+      return validateDefinition(definition).errors;
+    }
+    return null;
+  });
 
   const hasErrors = errors !== null && Object.keys(errors).length > 0;
   const isValid = errors !== null && Object.keys(errors).length === 0 && !dirty;
@@ -195,11 +228,13 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
             CUL Automation Report Runner Config Builder
           </h1>
           <p className="mt-1">
-            Generate a report.json file that controls the scheduling of your reports.
+            Generate a JSON file that controls the scheduling of your reports.
           </p>
         </div>
 
-        <Tabs defaultValue="editor">
+        <Tabs defaultValue="editor" onValueChange={() => {
+          if (errors === null || dirty) runValidation();
+        }}>
           <div className="flex items-center justify-between">
             <TabsList className="h-12 p-1">
               <TabsTrigger value="editor" className="px-6 py-2 text-base"><Pencil className="size-4" /> Editor</TabsTrigger>
@@ -207,6 +242,12 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
               <TabsTrigger value="json" className="px-6 py-2 text-base"><Code className="size-4" /> JSON</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)">
+                <Undo2 className="size-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} title="Redo (⌘⇧Z)">
+                <Redo2 className="size-4" />
+              </Button>
               {isValid && (
                 <Badge className="px-3 py-1 text-sm h-auto bg-green-600 text-white">
                   <ShieldCheck className="size-4" />
@@ -229,7 +270,7 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
               )}
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-                onClick={() => downloadJson(definition)}
+                onClick={() => onDownload(definition)}
                 disabled={hasErrors}
               >
                 <Download className="size-4" />
@@ -385,18 +426,59 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
 }
 
 function App() {
-  const [definition, setDefinition] = useState<ReportDefinition | null>(null);
+  const [started, setStarted] = useState(false);
+  const [imported, setImported] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const history = useHistory<ReportDefinition>(initialDefinition, () => {
+    setDirty(true);
+    setHasUnsavedChanges(true);
+  });
 
-  if (!definition) {
+  // Warn on close/navigate if unsaved
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsavedChanges]);
+
+  // Mark unsaved on any edit via history.set
+  const wrappedSet = (def: ReportDefinition) => {
+    history.set(def);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDownload = (def: ReportDefinition) => {
+    downloadJson(def);
+    setHasUnsavedChanges(false);
+  };
+
+  if (!started) {
     return (
       <LandingScreen
-        onNew={() => setDefinition(initialDefinition)}
-        onLoad={(def) => setDefinition(def)}
+        onNew={() => { setImported(false); history.reset(initialDefinition); setStarted(true); }}
+        onLoad={(def) => { setImported(true); history.reset(def); setStarted(true); }}
       />
     );
   }
 
-  return <Editor definition={definition} setDefinition={setDefinition} />;
+  return (
+    <Editor
+      definition={history.value}
+      setDefinition={wrappedSet}
+      onDownload={handleDownload}
+      autoValidate={imported}
+      canUndo={history.canUndo}
+      canRedo={history.canRedo}
+      undo={history.undo}
+      redo={history.redo}
+      dirty={dirty}
+      setDirty={setDirty}
+    />
+  );
 }
 
 export default App;

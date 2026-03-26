@@ -8,6 +8,7 @@ import { EmailForm } from "./EmailForm";
 import { RequiredLabel, FieldError } from "@/App";
 import { Label } from "@/components/ui/label";
 import { errorsFor, type ValidationErrors } from "@/lib/validation";
+import { Trash2 } from "lucide-react";
 import type { ConfiguredReport } from "@/types";
 
 interface Props {
@@ -62,7 +63,7 @@ export function ConfiguredReportForm({
             onClick={onRemove}
             className="text-destructive hover:text-destructive"
           >
-            Remove Report
+            <Trash2 className="size-4" />
           </Button>
         )}
       </div>
@@ -107,27 +108,37 @@ export function ConfiguredReportForm({
         </div>
 
       <div className="border rounded-lg p-4">
-        <h4 className="text-base font-semibold mb-3">SQL Parameters</h4>
         <ParamsForm
+          title="SQL Parameters"
           params={report.params}
           onChange={(p) => update("params", p)}
         />
       </div>
 
       <div className="border rounded-lg p-4">
-        <h4 className="text-base font-semibold mb-3">Outputs</h4>
-          <OutputForm
-            outputs={report.outputs}
-            onChange={(o) => update("outputs", o)}
-            errors={errors}
-            definitionId={definitionId}
-            reportName={report.name || ""}
-            metadataName={metadataName}
-          />
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-base font-semibold">Outputs</h4>
+          <Button variant="outline" size="sm" onClick={() => update("outputs", [...report.outputs, { service: "box", location: "", filename: "", file_extension: "xlsx" }])}>
+            + Add Output
+          </Button>
         </div>
+        <OutputForm
+          outputs={report.outputs}
+          onChange={(o) => update("outputs", o)}
+          errors={errors}
+          definitionId={definitionId}
+          reportName={report.name || ""}
+          metadataName={metadataName}
+        />
+      </div>
 
       <div className="border rounded-lg p-4">
-        <h4 className="text-base font-semibold mb-3">Email Notifications</h4>
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-base font-semibold">Email Notifications</h4>
+          <Button variant="outline" size="sm" onClick={() => update("email_notifications", [...(report.email_notifications || []), { recipients: [], subject: "", message: "", notify_on: "all" as const }])}>
+            + Add Notification
+          </Button>
+        </div>
         <EmailForm
           notifications={report.email_notifications}
           onChange={(n) => update("email_notifications", n)}
