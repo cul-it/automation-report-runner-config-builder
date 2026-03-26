@@ -160,6 +160,9 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
           </div>
         </div>
       )}
+      <footer className="absolute bottom-4 left-0 right-0 text-center text-xs text-muted-foreground">
+        <a href={`https://github.com/cul-it/automation-report-runner-config-builder/commit/${__COMMIT_HASH_FULL__}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{__COMMIT_HASH__}</a>
+      </footer>
     </div>
   );
 }
@@ -420,6 +423,10 @@ function Editor({ definition, setDefinition, onDownload, autoValidate, canUndo, 
             <JsonPreview definition={definition} />
           </TabsContent>
         </Tabs>
+
+        <footer className="text-center text-xs text-muted-foreground pt-4 border-t">
+          <a href={`https://github.com/cul-it/automation-report-runner-config-builder/commit/${__COMMIT_HASH_FULL__}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{__COMMIT_HASH__}</a>
+        </footer>
       </div>
     </div>
   );
