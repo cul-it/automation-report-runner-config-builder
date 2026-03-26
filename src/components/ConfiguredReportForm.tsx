@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ScheduleForm } from "./ScheduleForm";
+import { ParamsForm } from "./ParamsForm";
 import { OutputForm } from "./OutputForm";
 import { EmailForm } from "./EmailForm";
 import { RequiredLabel, FieldError } from "@/App";
@@ -67,55 +68,63 @@ export function ConfiguredReportForm({
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>Name</Label>
-          <Input
-            value={report.name || ""}
-            onChange={(e) => update("name", e.target.value || undefined)}
-            placeholder="Optional unique name"
-          />
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input
+              value={report.name || ""}
+              onChange={(e) => update("name", e.target.value || undefined)}
+              placeholder="Optional unique name"
+            />
+          </div>
+          <div className="space-y-2">
+            <RequiredLabel>SQL File</RequiredLabel>
+            <Input
+              value={report.sql_file}
+              onChange={(e) => update("sql_file", e.target.value)}
+              placeholder="query.sql"
+              className={errors?.["sql_file"] ? "border-destructive" : ""}
+            />
+            <FieldError error={errors?.["sql_file"]} />
+          </div>
+          <div className="space-y-2">
+            <RequiredLabel>Database</RequiredLabel>
+            <Input
+              value={report.database}
+              disabled
+              className={errors?.["database"] ? "border-destructive" : ""}
+            />
+            <FieldError error={errors?.["database"]} />
+          </div>
         </div>
-        <div className="space-y-2">
-          <RequiredLabel>SQL File</RequiredLabel>
-          <Input
-            value={report.sql_file}
-            onChange={(e) => update("sql_file", e.target.value)}
-            placeholder="query.sql"
-            className={errors?.["sql_file"] ? "border-destructive" : ""}
-          />
-          <FieldError error={errors?.["sql_file"]} />
-        </div>
-        <div className="space-y-2">
-          <RequiredLabel>Database</RequiredLabel>
-          <Input
-            value={report.database}
-            disabled
-            className={errors?.["database"] ? "border-destructive" : ""}
-          />
-          <FieldError error={errors?.["database"]} />
-        </div>
-      </div>
 
       <div className="border rounded-lg p-4">
         <h4 className="text-base font-semibold mb-3">Schedule</h4>
-        <ScheduleForm
-          schedule={report.schedule}
-          onChange={(s) => update("schedule", s)}
-          errors={errors ? errorsFor(errors, "schedule") : null}
+          <ScheduleForm
+            schedule={report.schedule}
+            onChange={(s) => update("schedule", s)}
+            errors={errors ? errorsFor(errors, "schedule") : null}
+          />
+        </div>
+
+      <div className="border rounded-lg p-4">
+        <h4 className="text-base font-semibold mb-3">SQL Parameters</h4>
+        <ParamsForm
+          params={report.params}
+          onChange={(p) => update("params", p)}
         />
       </div>
 
       <div className="border rounded-lg p-4">
         <h4 className="text-base font-semibold mb-3">Outputs</h4>
-        <OutputForm
-          outputs={report.outputs}
-          onChange={(o) => update("outputs", o)}
-          errors={errors}
-          definitionId={definitionId}
-          reportName={report.name || ""}
-          metadataName={metadataName}
-        />
-      </div>
+          <OutputForm
+            outputs={report.outputs}
+            onChange={(o) => update("outputs", o)}
+            errors={errors}
+            definitionId={definitionId}
+            reportName={report.name || ""}
+            metadataName={metadataName}
+          />
+        </div>
 
       <div className="border rounded-lg p-4">
         <h4 className="text-base font-semibold mb-3">Email Notifications</h4>

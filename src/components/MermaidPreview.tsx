@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useId } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import mermaid from "mermaid";
 import type { ReportDefinition } from "@/types";
 import { utcToLocal, getTimezoneAbbr } from "@/lib/time";
@@ -59,8 +59,10 @@ function buildMermaid(def: ReportDefinition): string {
   const owner = esc(def.metadata.owner || "—");
   const status = def.enabled ? "Enabled" : "DISABLED";
 
+  const defDisabled = !def.enabled;
+
   lines.push(`  START(["<b>${id}</b><br/><i>Owner:</i> ${owner}<br/><i>Status:</i> ${status}"])`);
-  lines.push(`  style START fill:#3b82f6,color:#fff,stroke:#2563eb`);
+  lines.push(`  style START fill:${defDisabled ? "#9ca3af" : "#3b82f6"},color:#fff,stroke:${defDisabled ? "#6b7280" : "#2563eb"}`);
 
   if (def.reports.length === 0) {
     lines.push(`  START --> NONE["No reports configured"]`);
@@ -69,24 +71,27 @@ function buildMermaid(def: ReportDefinition): string {
 
   def.reports.forEach((r, i) => {
     const name = esc(r.name || `Report ${i + 1}`);
+    const reportId = `RPT${i}`;
     const schedId = `SCHED${i}`;
-    const queryId = `QUERY${i}`;
     const sqlId = `SQL${i}`;
     const sqlFile = esc(r.sql_file || "no sql file");
     const db = esc(r.database);
     const reportStatus = r.enabled ? "Enabled" : "DISABLED";
-
-    // Schedule
-    lines.push(`  START --> ${schedId}(("${scheduleLabel(r.schedule)}"))`);
-    lines.push(`  style ${schedId} fill:#f59e0b,color:#fff,stroke:#d97706`);
+    const dim = defDisabled || !r.enabled;
 
     // Report
-    lines.push(`  ${schedId} -->|triggers| ${queryId}["<b>${name}</b><br/><i>Status:</i> ${reportStatus}"]`);
-    lines.push(`  style ${queryId} fill:#8b5cf6,color:#fff,stroke:#7c3aed`);
+    lines.push(`  START --> ${reportId}["<b>${name}</b><br/><i>Status:</i> ${reportStatus}"]`);
+    lines.push(`  style ${reportId} fill:${dim ? "#9ca3af" : "#8b5cf6"},color:#fff,stroke:${dim ? "#6b7280" : "#7c3aed"}`);
+
+    // Schedule (belongs to report)
+    lines.push(`  ${reportId} -->|scheduled at| ${schedId}(("${scheduleLabel(r.schedule)}"))`);
+    lines.push(`  style ${schedId} fill:${dim ? "#9ca3af" : "#f59e0b"},color:#fff,stroke:${dim ? "#6b7280" : "#d97706"}`);
 
     // Database query
-    lines.push(`  ${queryId} -->|queries| ${sqlId}[("<b>${db}</b><br/><i>File:</i> ${sqlFile}")]`);
-    lines.push(`  style ${sqlId} fill:#7c3aed,color:#fff,stroke:#6d28d9`);
+    const paramKeys = r.params ? Object.keys(r.params) : [];
+    const paramsLabel = paramKeys.length > 0 ? `<br/><i>Params:</i> ${esc(paramKeys.join(", "))}` : "";
+    lines.push(`  ${schedId} -->|queries| ${sqlId}[("<b>${db}</b><br/><i>File:</i> ${sqlFile}${paramsLabel}")]`);
+    lines.push(`  style ${sqlId} fill:${dim ? "#9ca3af" : "#7c3aed"},color:#fff,stroke:${dim ? "#6b7280" : "#6d28d9"}`);
 
     // Outputs
     const outputIds: string[] = [];
@@ -98,20 +103,19 @@ function buildMermaid(def: ReportDefinition): string {
       const fname = esc(o.filename || "no filename");
       const ext = o.file_extension || "xlsx";
       lines.push(`  ${sqlId} -->|saves to| ${outId}[["<b>${svc}</b><br/><i>Location:</i> ${loc}<br/><i>Filename:</i> ${fname}.${ext}"]]`);
-      lines.push(`  style ${outId} fill:#10b981,color:#fff,stroke:#059669`);
+      lines.push(`  style ${outId} fill:${dim ? "#9ca3af" : "#10b981"},color:#fff,stroke:${dim ? "#6b7280" : "#059669"}`);
     });
 
-    // Email — linked from outputs so they sit below, with a dotted link back to query
+    // Email — linked from outputs so they sit below
     if (r.email_notifications && r.email_notifications.length > 0) {
       r.email_notifications.forEach((e, j) => {
         const emailId = `EMAIL${i}x${j}`;
         const recipients = e.recipients.length > 0 ? esc(e.recipients.join(", ")) : "none";
         const msg = e.message ? esc(e.message.slice(0, 40)) + (e.message.length > 40 ? "..." : "") : "—";
         const notifyOn = { all: "Always", completed: "On Completion", error: "On Error" }[e.notify_on || "all"];
-        // Link from last output or sql node to push email lower
         const parentId = outputIds.length > 0 ? outputIds[outputIds.length - 1] : sqlId;
         lines.push(`  ${parentId} -->|notifies| ${emailId}("<b>Email</b><br/><i>To:</i> ${recipients}<br/><i>When:</i> ${notifyOn}<br/><i>Message:</i> ${msg}")`);
-        lines.push(`  style ${emailId} fill:#ec4899,color:#fff,stroke:#db2777`);
+        lines.push(`  style ${emailId} fill:${dim ? "#9ca3af" : "#ec4899"},color:#fff,stroke:${dim ? "#6b7280" : "#db2777"}`);
       });
     }
   });
@@ -159,6 +163,7 @@ export function MermaidPreview({ definition }: Props) {
         <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-[#8b5cf6]" /> Query</span>
         <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-[#10b981]" /> Output</span>
         <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-[#ec4899]" /> Email</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-[#9ca3af]" /> Disabled</span>
       </div>
       <div
         ref={containerRef}

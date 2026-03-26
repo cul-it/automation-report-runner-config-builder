@@ -325,44 +325,44 @@ function Editor({ definition, setDefinition }: { definition: ReportDefinition; s
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Optional Metadata</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MetadataForm
-                  metadata={definition.metadata}
-                  onChange={(metadata) =>
-                    markDirtyAndSet({ ...definition, metadata })
-                  }
-                />
-              </CardContent>
-            </Card>
+                <CardHeader>
+                  <CardTitle>Optional Metadata</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MetadataForm
+                    metadata={definition.metadata}
+                    onChange={(metadata) =>
+                      markDirtyAndSet({ ...definition, metadata })
+                    }
+                  />
+                </CardContent>
+              </Card>
 
-            <Separator />
+              <Separator className="my-6" />
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Configured Reports</h2>
-                <Button variant="outline" onClick={addReport}>
-                  <Plus className="size-4" />
-                  Add Report
-                </Button>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Configured Reports</h2>
+                  <Button variant="outline" onClick={addReport}>
+                    <Plus className="size-4" />
+                    Add Report
+                  </Button>
+                </div>
+
+                {definition.reports.map((report, index) => (
+                  <ConfiguredReportForm
+                    key={index}
+                    report={report}
+                    index={index}
+                    canRemove={definition.reports.length > 1}
+                    onChange={(r) => updateReport(index, r)}
+                    onRemove={() => removeReport(index)}
+                    errors={errors ? errorsFor(errors, `reports.${index}`) : null}
+                    definitionId={definition.id}
+                    metadataName={definition.metadata.name}
+                  />
+                ))}
               </div>
-
-              {definition.reports.map((report, index) => (
-                <ConfiguredReportForm
-                  key={index}
-                  report={report}
-                  index={index}
-                  canRemove={definition.reports.length > 1}
-                  onChange={(r) => updateReport(index, r)}
-                  onRemove={() => removeReport(index)}
-                  errors={errors ? errorsFor(errors, `reports.${index}`) : null}
-                  definitionId={definition.id}
-                  metadataName={definition.metadata.name}
-                />
-              ))}
-            </div>
           </TabsContent>
 
           <TabsContent value="flow" className="mt-6">
