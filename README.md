@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# Report Runner Config Builder
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based tool for building `runner.json` configuration files that control the CUL Automation report runner. The generated JSON defines report schedules, SQL queries, output destinations, and email notifications.
 
-Currently, two official plugins are available:
+Deployed to GitHub Pages via GitHub Actions on push to `main`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Editor** with form-based configuration for all report runner fields
+- **JSON tab** with formatted preview and copy-to-clipboard
+- **Flow chart tab** (Mermaid) that visualizes the report execution pipeline
+- **Validation** with inline field errors, required field markers, and a summary panel
+- **Undo/redo** with keyboard shortcuts (Cmd+Z / Cmd+Shift+Z) and toolbar buttons
+- **Open Existing** to load and edit a previously exported `runner.json` file
+- **Unsaved changes warning** when closing the browser tab before downloading
+- **Build footer** showing the commit hash for deployment verification
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Report Config Structure
 
-## Expanding the ESLint configuration
+Each `runner.json` file contains:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Report Definition**: ID, enabled flag, and optional metadata (name, description, owner, tags)
+- **Configured Reports**: one or more reports, each with:
+  - SQL file and database (METADB)
+  - Schedule (daily, weekly, monthly, or specific dates) with timezone-aware time entry
+  - SQL parameters as key-value pairs, passed to the query via psycopg named parameters (`%(key)s`)
+  - Output destinations (Box or S3) with filename templates and file extension (xlsx, xls, csv, tsv)
+  - Email notifications with subject, message, recipients, and notify-on condition (always, on completion, on error)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Template Variables
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The following variables can be used in output filenames, email subjects, and email messages:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Description |
+|---|---|
+| `{id}` | Report definition ID |
+| `{name}` | Configured report name |
+| `{metadata_name}` | Name from the report definition metadata |
+| `{current_datetime}` | Timestamp in `YYYY-MM-DD_HH_mm` format |
+| `{workflow_id}` | Unique workflow execution identifier |
+
+Email templates also support `{error_msg}` for the error message when a report fails.
+
+## Development
+
+Requires [Bun](https://bun.sh).
+
+```sh
+bun install
+bun run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+bun run build
 ```
+
+The build injects the current git commit hash into the app footer. The output goes to `dist/`.
+
+## Deployment
+
+Deployment is handled automatically by the GitHub Actions workflow (`.github/workflows/deploy.yml`). On push to `main`, it builds with Bun and deploys to GitHub Pages.
+
+To enable: go to the repo Settings > Pages and set the source to "GitHub Actions".
