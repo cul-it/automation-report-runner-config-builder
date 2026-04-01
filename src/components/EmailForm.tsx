@@ -76,7 +76,7 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
                 onClick={() => remove(index)}
                 className="text-destructive hover:text-destructive"
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-4.5" />
               </Button>
             </div>
             <div className="space-y-2">

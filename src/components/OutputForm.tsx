@@ -126,7 +126,7 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
                   onClick={() => remove(index)}
                   className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-4.5" />
                 </Button>
               )}
             </div>
