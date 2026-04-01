@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ScheduleForm } from "./ScheduleForm";
 import { ParamsForm } from "./ParamsForm";
+import { SqlPreview } from "./SqlPreview";
 import { OutputForm } from "./OutputForm";
 import { EmailForm } from "./EmailForm";
 import { RequiredLabel, FieldError } from "@/App";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { errorsFor, type ValidationErrors } from "@/lib/validation";
 import { Trash2 } from "lucide-react";
 import type { ConfiguredReport } from "@/types";
+import { useCallback, useState } from "react";
 
 interface Props {
   report: ConfiguredReport;
@@ -32,12 +34,43 @@ export function ConfiguredReportForm({
   definitionId,
   metadataName,
 }: Props) {
+  const [hoveredParam, setHoveredParam] = useState<string | null>(null);
+  const [paramDescriptions, setParamDescriptions] = useState<Record<string, string>>({});
+
   const update = <K extends keyof ConfiguredReport>(
     field: K,
     value: ConfiguredReport[K]
   ) => {
     onChange({ ...report, [field]: value });
   };
+
+  const handleParamsDetected = useCallback(
+    (
+      paramKeys: string[],
+      defaults?: Record<string, string>,
+      descriptions?: Record<string, string>
+    ) => {
+      if (descriptions && Object.keys(descriptions).length > 0) {
+        setParamDescriptions((prev) => ({ ...prev, ...descriptions }));
+      }
+      const current = report.params ?? {};
+      const merged = { ...current };
+      let changed = false;
+      for (const key of paramKeys) {
+        if (!(key in merged)) {
+          merged[key] = {
+            value: defaults?.[key] ?? "",
+            description: descriptions?.[key],
+          };
+          changed = true;
+        }
+      }
+      if (changed) {
+        update("params", Object.keys(merged).length > 0 ? merged : null);
+      }
+    },
+    [report.params]
+  );
 
   return (
     <div className="border rounded-lg p-6 space-y-6">
@@ -63,7 +96,7 @@ export function ConfiguredReportForm({
             onClick={onRemove}
             className="text-destructive hover:text-destructive"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="size-4.5" />
           </Button>
         )}
       </div>
@@ -107,11 +140,23 @@ export function ConfiguredReportForm({
           />
         </div>
 
-      <div className="border rounded-lg p-4">
+      <div className="border rounded-lg p-4 space-y-4">
         <ParamsForm
-          title="SQL Parameters"
+          title="Parameters"
           params={report.params}
           onChange={(p) => update("params", p)}
+          highlightedParam={hoveredParam}
+          descriptions={paramDescriptions}
+        />
+        <SqlPreview
+          params={report.params}
+          sqlFile={report.sql_file}
+          onParamsDetected={handleParamsDetected}
+          onHoverParam={setHoveredParam}
+          onClear={() => {
+            update("params", null);
+            setParamDescriptions({});
+          }}
         />
       </div>
 

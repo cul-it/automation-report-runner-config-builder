@@ -39,7 +39,7 @@ export interface ConfiguredReport {
   database: string;
   sql_file: string;
   schedule: Schedule;
-  params: Record<string, string> | null;
+  params: Record<string, { value: string; description?: string }> | null;
   outputs: OutputDestination[];
   email_notifications: EmailNotification[] | null;
 }

@@ -24,7 +24,11 @@ export function buildJson(definition: ReportDefinition): object {
         database: r.database,
         sql_file: r.sql_file,
         schedule: r.schedule,
-        params: r.params,
+        params: r.params
+          ? Object.fromEntries(
+              Object.entries(r.params).map(([k, v]) => [k, v.value])
+            )
+          : null,
         outputs: r.outputs.map((o) => {
           const out: Record<string, unknown> = {
             service: o.service,

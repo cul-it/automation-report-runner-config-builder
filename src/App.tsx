@@ -87,7 +87,14 @@ function LandingScreen({ onNew, onLoad }: { onNew: () => void; onLoad: (def: Rep
             database: r.database ?? "METADB",
             sql_file: r.sql_file ?? "",
             schedule: r.schedule ?? { type: "daily", time: "09:00" },
-            params: r.params ?? null,
+            params: r.params
+              ? Object.fromEntries(
+                  Object.entries(r.params).map(([k, v]: [string, any]) => [
+                    k,
+                    typeof v === "string" ? { value: v } : v,
+                  ])
+                )
+              : null,
             outputs: (r.outputs ?? []).map((o: any) => ({
               service: o.service ?? "box",
               location: o.location ?? "",

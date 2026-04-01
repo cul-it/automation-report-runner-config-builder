@@ -106,7 +106,7 @@ function buildMermaid(def: ReportDefinition): string {
     // Database query
     const paramEntries = r.params ? Object.entries(r.params) : [];
     const paramsLabel = paramEntries.length > 0
-      ? `<br/><i>Params:</i> ${paramEntries.map(([k, v]) => `${esc(k)}=${esc(v)}`).join(", ")}`
+      ? `<br/><i>Params:</i> ${paramEntries.map(([k, v]) => `${esc(k)}=${esc(v.value)}`).join(", ")}`
       : "";
     lines.push(`  ${schedId} -->|queries| ${sqlId}[("<b>${db}</b><br/><i>File:</i> ${sqlFile}${paramsLabel}")]`);
     lines.push(`  style ${sqlId} fill:${dim ? "#9ca3af" : "#7c3aed"},color:#fff,stroke:${dim ? "#6b7280" : "#6d28d9"}`);
