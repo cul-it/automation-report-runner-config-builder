@@ -105,7 +105,7 @@ export function ParamsForm({ title, params, onChange, highlightedParam, descript
               value={row.key}
               onChange={(e) => updateRow(index, "key", e.target.value)}
               placeholder="param_name"
-              className="font-mono flex-1 min-w-0"
+              className="font-mono min-w-0 w-[40%] shrink-0"
             />
             <ParamValueInput
               value={row.value}

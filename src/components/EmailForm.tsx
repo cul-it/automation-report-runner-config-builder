@@ -189,6 +189,7 @@ export function EmailForm({ notifications, onChange, errors, definitionId, repor
           <li><code className="font-mono font-semibold">{"{name}"}</code> — Name of the configured report</li>
           <li><code className="font-mono font-semibold">{"{workflow_id}"}</code> — Unique workflow execution identifier</li>
           <li><code className="font-mono font-semibold">{"{error_msg}"}</code> — Error message if the report failed</li>
+          <li><code className="font-mono font-semibold">{"{box_urls}"}</code> — Box URLs for uploaded report files</li>
         </ul>
       </details>
     </div>

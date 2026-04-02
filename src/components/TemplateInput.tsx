@@ -9,6 +9,7 @@ const TEMPLATE_VARS = [
   { value: "name", description: "Name of the configured report" },
   { value: "workflow_id", description: "Unique workflow execution ID" },
   { value: "error_msg", description: "Error message if the report failed" },
+  { value: "box_urls", description: "Box URLs for uploaded report files" },
 ];
 
 interface Props {
@@ -188,5 +189,6 @@ export function previewTemplate(
     .replace(/\{metadata_name\}/g, context.metadataName || "My Report")
     .replace(/\{name\}/g, context.name || "report-1")
     .replace(/\{workflow_id\}/g, "a1b2c3d4")
-    .replace(/\{error_msg\}/g, "N/A");
+    .replace(/\{error_msg\}/g, "N/A")
+    .replace(/\{box_urls\}/g, "https://cornell.box.com/s/abc123");
 }
