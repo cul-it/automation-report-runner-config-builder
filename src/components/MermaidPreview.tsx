@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo } from "react";
 import mermaid from "mermaid";
 import type { ReportDefinition } from "@/types";
 import { utcToLocal, getTimezoneAbbr } from "@/lib/time";
+import { isVariableExpression, resolvePreview } from "./ParamValueInput";
 
 function previewFilename(template: string, defId: string, reportName: string, metadataName: string): string {
   const now = new Date();
@@ -103,13 +104,29 @@ function buildMermaid(def: ReportDefinition): string {
     lines.push(`  ${reportId} -->|scheduled at| ${schedId}(("${scheduleLabel(r.schedule)}"))`);
     lines.push(`  style ${schedId} fill:${dim ? "#9ca3af" : "#f59e0b"},color:#fff,stroke:${dim ? "#6b7280" : "#d97706"}`);
 
-    // Database query
+    // SQL file
+    const fileId = `FILE${i}`;
+    lines.push(`  ${schedId} --> ${fileId}["<b>SQL File</b><br/>${sqlFile}"]`);
+    lines.push(`  style ${fileId} fill:${dim ? "#9ca3af" : "#6d28d9"},color:#fff,stroke:${dim ? "#6b7280" : "#5b21b6"}`);
+
+    // Parameters
     const paramEntries = r.params ? Object.entries(r.params) : [];
-    const paramsLabel = paramEntries.length > 0
-      ? `<br/><i>Params:</i> ${paramEntries.map(([k, v]) => `${esc(k)}=${esc(v.value)}`).join(", ")}`
-      : "";
-    lines.push(`  ${schedId} -->|queries| ${sqlId}[("<b>${db}</b><br/><i>File:</i> ${sqlFile}${paramsLabel}")]`);
-    lines.push(`  style ${sqlId} fill:${dim ? "#9ca3af" : "#7c3aed"},color:#fff,stroke:${dim ? "#6b7280" : "#6d28d9"}`);
+    const paramId = `PARAM${i}`;
+    const dbSource = paramEntries.length > 0 ? paramId : fileId;
+    if (paramEntries.length > 0) {
+      const paramRows = paramEntries.map(([k, v]) => {
+        const preview = isVariableExpression(v.value) ? resolvePreview(v.value) : null;
+        return preview
+          ? `<b>${esc(k)}</b>: ${esc(v.value)} → ${esc(preview)}`
+          : `<b>${esc(k)}</b>: ${esc(v.value)}`;
+      }).join("<br/>");
+      lines.push(`  ${fileId} --> ${paramId}["<b>Parameters</b><br/>${paramRows}"]`);
+      lines.push(`  style ${paramId} fill:${dim ? "#9ca3af" : "#7c3aed"},color:#fff,stroke:${dim ? "#6b7280" : "#6d28d9"}`);
+    }
+
+    // Database
+    lines.push(`  ${dbSource} -->|queries| ${sqlId}[("<b>${db}</b>")]`);
+    lines.push(`  style ${sqlId} fill:${dim ? "#9ca3af" : "#4f46e5"},color:#fff,stroke:${dim ? "#6b7280" : "#4338ca"}`);
 
     // Outputs
     const outputIds: string[] = [];

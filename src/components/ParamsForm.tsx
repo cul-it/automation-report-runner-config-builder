@@ -93,7 +93,7 @@ export function ParamsForm({ title, params, onChange, highlightedParam, descript
         </div>
       )}
       {rows.map((row, index) => (
-        <div key={index} className="space-y-1">
+        <div key={index} className={`space-y-1 pb-3 ${index < rows.length - 1 ? "border-b" : ""}`}>
           <div
             className={`flex gap-2 items-center rounded-md px-1 -mx-1 transition-colors ${
               highlightedParam && row.key === highlightedParam
