@@ -1,7 +1,10 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import type { ReportDefinition } from "@/types";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { basicSetup } from "codemirror";
+import { json } from "@codemirror/lang-json";
 
 
 interface Props {
@@ -49,25 +52,74 @@ export function buildJson(definition: ReportDefinition): object {
 
 export function JsonPreview({ definition }: Props) {
   const [copied, setCopied] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
 
-  const json = JSON.stringify(buildJson(definition), null, 2);
+  const jsonStr = JSON.stringify(buildJson(definition), null, 2);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(json);
+    await navigator.clipboard.writeText(jsonStr);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    if (viewRef.current) {
+      // Update content when definition changes
+      const current = viewRef.current.state.doc.toString();
+      if (current !== jsonStr) {
+        viewRef.current.dispatch({
+          changes: { from: 0, to: current.length, insert: jsonStr },
+        });
+      }
+      return;
+    }
+
+    const state = EditorState.create({
+      doc: jsonStr,
+      extensions: [
+        basicSetup,
+        json(),
+        EditorState.readOnly.of(true),
+        EditorView.editable.of(false),
+        EditorView.theme({
+          "&": {
+            fontSize: "15px",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: "0.5rem",
+            maxHeight: "600px",
+          },
+          ".cm-scroller": {
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            overflow: "auto",
+          },
+          ".cm-activeLine": { backgroundColor: "transparent" },
+          ".cm-cursor": { display: "none" },
+        }),
+      ],
+    });
+
+    viewRef.current = new EditorView({ state, parent: editorRef.current });
+
+    return () => {
+      viewRef.current?.destroy();
+      viewRef.current = null;
+    };
+  }, [jsonStr]);
+
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" onClick={copy}>
           {copied ? "Copied!" : "Copy JSON"}
         </Button>
+        <span className="text-sm text-muted-foreground">
+          Read-only preview - copy this JSON into your config file.
+        </span>
       </div>
-      <ScrollArea className="h-[600px] rounded-md border">
-        <pre className="p-4 text-sm font-mono">{json}</pre>
-      </ScrollArea>
+      <div ref={editorRef} />
     </div>
   );
 }

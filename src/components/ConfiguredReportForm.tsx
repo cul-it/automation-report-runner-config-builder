@@ -188,6 +188,9 @@ export function ConfiguredReportForm({
           notifications={report.email_notifications}
           onChange={(n) => update("email_notifications", n)}
           errors={errors}
+          definitionId={definitionId}
+          reportName={report.name}
+          metadataName={metadataName}
         />
       </div>
     </div>

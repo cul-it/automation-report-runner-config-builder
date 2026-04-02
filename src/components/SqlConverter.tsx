@@ -24,7 +24,7 @@ export function SqlConverter({ onBack }: Props) {
 
   const editorTheme = EditorView.theme({
     "&": {
-      fontSize: "13px",
+      fontSize: "15px",
       border: "1px solid hsl(var(--border))",
       borderRadius: "0.5rem",
     },

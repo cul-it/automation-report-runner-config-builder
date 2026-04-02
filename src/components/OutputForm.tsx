@@ -116,7 +116,22 @@ export function OutputForm({ outputs, onChange, errors, definitionId, reportName
             <div className="flex justify-between items-center">
               <span className="text-sm font-bold font-mono">
                 {output.filename
-                  ? `${previewFilename(output.filename, definitionId, reportName, metadataName)}.${output.file_extension}`
+                  ? (<>
+                      {previewFilename(output.filename, definitionId, reportName, metadataName)}.{output.file_extension}
+                      {output.service === "box" && output.location?.trim() && (
+                        <>
+                          {" → "}
+                          <a
+                            href={`https://cornell.app.box.com/folder/${encodeURIComponent(output.location.trim())}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {output.location.trim()}
+                          </a>
+                        </>
+                      )}
+                    </>)
                   : `Output ${index + 1}`}
               </span>
               {outputs.length > 1 && (

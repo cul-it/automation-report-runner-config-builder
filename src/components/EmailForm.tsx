@@ -1,5 +1,4 @@
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
@@ -10,6 +9,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { RequiredLabel, FieldError } from "@/App";
+import { TemplateInput, previewTemplate } from "./TemplateInput";
 import type { EmailNotification, NotificationType } from "@/types";
 import type { ValidationErrors } from "@/lib/validation";
 import { useState } from "react";
@@ -18,9 +18,12 @@ interface Props {
   notifications: EmailNotification[] | null;
   onChange: (notifications: EmailNotification[] | null) => void;
   errors: ValidationErrors | null;
+  definitionId?: string;
+  reportName?: string;
+  metadataName?: string;
 }
 
-export function EmailForm({ notifications, onChange, errors }: Props) {
+export function EmailForm({ notifications, onChange, errors, definitionId, reportName, metadataName }: Props) {
   const [recipientInputs, setRecipientInputs] = useState<
     Record<number, string>
   >({});
@@ -141,23 +144,34 @@ export function EmailForm({ notifications, onChange, errors }: Props) {
             </div>
             <div className="space-y-2">
               <RequiredLabel>Subject</RequiredLabel>
-              <Input
+              <TemplateInput
                 value={notif.subject}
-                onChange={(e) => updateField(index, "subject", e.target.value)}
+                onChange={(v) => updateField(index, "subject", v)}
                 placeholder="Report Ready: {id}"
                 className={subjectErr ? "border-destructive" : ""}
               />
+              {notif.subject && (
+                <p className="text-xs text-muted-foreground truncate">
+                  Preview: {previewTemplate(notif.subject, { id: definitionId, name: reportName, metadataName })}
+                </p>
+              )}
               <FieldError error={subjectErr} />
             </div>
             <div className="space-y-2">
               <RequiredLabel>Message</RequiredLabel>
-              <Textarea
+              <TemplateInput
                 value={notif.message}
-                onChange={(e) => updateField(index, "message", e.target.value)}
+                onChange={(v) => updateField(index, "message", v)}
                 placeholder="Your report is ready."
+                multiline
                 rows={2}
                 className={messageErr ? "border-destructive" : ""}
               />
+              {notif.message && (
+                <p className="text-xs text-muted-foreground">
+                  Preview: {previewTemplate(notif.message, { id: definitionId, name: reportName, metadataName })}
+                </p>
+              )}
               <FieldError error={messageErr} />
             </div>
           </div>

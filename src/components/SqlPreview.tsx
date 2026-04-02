@@ -376,7 +376,7 @@ export function SqlPreview({ params, sqlFile, onParamsDetected, onHoverParam, on
         }),
         EditorView.theme({
           "&": {
-            fontSize: "13px",
+            fontSize: "15px",
             border: "1px solid hsl(var(--border))",
             borderRadius: "0.5rem",
           },

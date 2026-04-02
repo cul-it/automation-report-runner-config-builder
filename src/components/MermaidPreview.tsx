@@ -73,12 +73,12 @@ function buildMermaid(def: ReportDefinition): string {
   const lines: string[] = ["flowchart TD"];
   const id = esc(def.id || "Unnamed");
 
-  const owner = esc(def.metadata.owner || "—");
+  const owner = def.metadata.owner?.trim() ? `<br/><i>Owner:</i> ${esc(def.metadata.owner)}` : "";
   const status = def.enabled ? "Enabled" : "DISABLED";
 
   const defDisabled = !def.enabled;
 
-  lines.push(`  START(["<b>${id}</b><br/><i>Owner:</i> ${owner}<br/><i>Status:</i> ${status}"])`);
+  lines.push(`  START(["<b>${id}</b>${owner}<br/><i>Status:</i> ${status}"])`);
   lines.push(`  style START fill:${defDisabled ? "#9ca3af" : "#3b82f6"},color:#fff,stroke:${defDisabled ? "#6b7280" : "#2563eb"}`);
 
   if (def.reports.length === 0) {
@@ -134,12 +134,16 @@ function buildMermaid(def: ReportDefinition): string {
       const outId = `OUT${i}x${j}`;
       outputIds.push(outId);
       const svc = o.service === "box" ? "Box" : "S3";
-      const loc = esc(o.location || "no destination");
+      const rawLoc = o.location || "no destination";
+      const loc = esc(rawLoc);
       const fname = escKeepBraces(o.filename || "no filename");
       const ext = o.file_extension || "xlsx";
       const preview = esc(previewFilename(o.filename || "no filename", def.id, name, def.metadata.name));
       lines.push(`  ${sqlId} -->|saves to| ${outId}[["<b>${svc}</b><br/><i>Location:</i> ${loc}<br/><i>Template:</i> ${fname}.${ext}<br/><i>Preview:</i> ${preview}.${ext}"]]`);
       lines.push(`  style ${outId} fill:${dim ? "#9ca3af" : "#10b981"},color:#fff,stroke:${dim ? "#6b7280" : "#059669"}`);
+      if (o.service === "box" && rawLoc && rawLoc !== "no destination") {
+        lines.push(`  click ${outId} "https://cornell.app.box.com/folder/${encodeURIComponent(rawLoc)}" _blank`);
+      }
     });
 
     // Email — linked from outputs so they sit below
@@ -147,10 +151,9 @@ function buildMermaid(def: ReportDefinition): string {
       r.email_notifications.forEach((e, j) => {
         const emailId = `EMAIL${i}x${j}`;
         const recipients = e.recipients.length > 0 ? esc(e.recipients.join(", ")) : "none";
-        const msg = e.message ? esc(e.message.slice(0, 40)) + (e.message.length > 40 ? "..." : "") : "—";
         const notifyOn = { all: "Always", completed: "On Completion", error: "On Error" }[e.notify_on || "all"];
         const parentId = outputIds.length > 0 ? outputIds[outputIds.length - 1] : sqlId;
-        lines.push(`  ${parentId} -->|notifies| ${emailId}("<b>Email</b><br/><i>To:</i> ${recipients}<br/><i>When:</i> ${notifyOn}<br/><i>Message:</i> ${msg}")`);
+        lines.push(`  ${parentId} -->|notifies| ${emailId}("<b>Email</b><br/><i>To:</i> ${recipients}<br/><i>When:</i> ${notifyOn}")`);
         lines.push(`  style ${emailId} fill:${dim ? "#9ca3af" : "#ec4899"},color:#fff,stroke:${dim ? "#6b7280" : "#db2777"}`);
       });
     }
